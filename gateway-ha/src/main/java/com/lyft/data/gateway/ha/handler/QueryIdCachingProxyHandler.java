@@ -126,11 +126,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
         backendAddress = routingManager.findBackendForQueryId(queryId);
       } else {
         String routingGroup = routingGroupSelector.findRoutingGroup(request);
-        String queryString = request.getQueryString() != null ? request.getQueryString() : "";
-        Optional<String> userIdFromQueryString = extractUserId(queryString);
-        String user = userIdFromQueryString.orElseGet(() ->
-                Optional.ofNullable(request.getHeader(USER_HEADER))
-                        .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
+        String user = Optional.ofNullable(request.getHeader(USER_HEADER)).orElse(request.getHeader(ALTERNATE_USER_HEADER));
 
         if (!Strings.isNullOrEmpty(routingGroup)) {
           // This falls back on adhoc backend if there are no cluster found for the routing group.
@@ -294,6 +290,13 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
             request.getHeader(HOST_HEADER), overrideHostName);
 
         proxyRequest.header(HOST_HEADER, overrideHostName);
+        String queryString = request.getQueryString() != null ? request.getQueryString() : "";
+        Optional<String> userIdFromQueryString = extractUserId(queryString);
+        String user = userIdFromQueryString.orElseGet(() ->
+                Optional.ofNullable(request.getHeader(USER_HEADER))
+                        .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
+        proxyRequest.header(USER_HEADER, user);
+        proxyRequest.header(ALTERNATE_USER_HEADER, user);
       } catch (URISyntaxException e) {
         log.warn(e.toString());
       }
@@ -307,11 +310,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     QueryHistoryManager.QueryDetail queryDetail = new QueryHistoryManager.QueryDetail();
     queryDetail.setBackendUrl(request.getHeader(PROXY_TARGET_HEADER));
     queryDetail.setCaptureTime(System.currentTimeMillis());
-    String queryString = request.getQueryString() != null ? request.getQueryString() : "";
-    Optional<String> userIdFromQueryString = extractUserId(queryString);
-    String user = userIdFromQueryString.orElseGet(() ->
-            Optional.ofNullable(request.getHeader(USER_HEADER))
-                    .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
+    String user = Optional.ofNullable(request.getHeader(USER_HEADER))
+                    .orElse(request.getHeader(ALTERNATE_USER_HEADER));
     queryDetail.setUser(user);
     queryDetail.setSource(Optional.ofNullable(request.getHeader(SOURCE_HEADER))
             .orElse(request.getHeader(ALTERNATE_SOURCE_HEADER)));
