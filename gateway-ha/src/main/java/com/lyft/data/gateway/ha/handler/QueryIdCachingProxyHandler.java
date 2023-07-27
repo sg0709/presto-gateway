@@ -291,6 +291,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
             request.getHeader(HOST_HEADER), overrideHostName);
 
         proxyRequest.header(HOST_HEADER, overrideHostName);
+        log.info(request.toString());
         String queryString = request.getQueryString() != null ? request.getQueryString() : "";
         Optional<String> userIdFromQueryString = extractUserId(queryString);
         String user = userIdFromQueryString.isPresent() ? userIdFromQueryString.get() :
