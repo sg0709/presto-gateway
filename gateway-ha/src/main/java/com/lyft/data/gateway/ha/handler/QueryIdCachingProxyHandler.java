@@ -297,7 +297,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
                 Optional.ofNullable(request.getHeader(USER_HEADER))
                         .orElse(request.getHeader(ALTERNATE_USER_HEADER));
         log.info("Changed User: {}", user);
-        proxyRequest.header(USER_HEADER, user);
+        proxyRequest.header(USER_HEADER, "Sarthak");
         log.info("ProxyRequestChanged: {}", proxyRequest.toString());
       } catch (URISyntaxException e) {
         log.warn(e.toString());
