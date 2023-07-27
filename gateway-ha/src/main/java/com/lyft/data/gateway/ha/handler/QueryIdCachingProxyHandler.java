@@ -15,6 +15,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -113,6 +114,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
   @Override
   public String rewriteTarget(HttpServletRequest request) {
     /* Here comes the load balancer / gateway */
+    log.info(request.toString());
     String backendAddress = "http://localhost:" + serverApplicationPort;
 
     // Only load balance presto query APIs.
@@ -124,8 +126,12 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
         backendAddress = routingManager.findBackendForQueryId(queryId);
       } else {
         String routingGroup = routingGroupSelector.findRoutingGroup(request);
-        String user = Optional.ofNullable(request.getHeader(USER_HEADER))
-                .orElse(request.getHeader(ALTERNATE_USER_HEADER));
+        String queryString = request.getQueryString() != null ? request.getQueryString() : "";
+        Optional<String> userIdFromQueryString = extractUserId(queryString);
+        String user = userIdFromQueryString.orElseGet(() ->
+                Optional.ofNullable(request.getHeader(USER_HEADER))
+                        .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
+
         if (!Strings.isNullOrEmpty(routingGroup)) {
           // This falls back on adhoc backend if there are no cluster found for the routing group.
           backendAddress = routingManager.provideBackendForRoutingGroup(routingGroup, user);
@@ -301,8 +307,12 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     QueryHistoryManager.QueryDetail queryDetail = new QueryHistoryManager.QueryDetail();
     queryDetail.setBackendUrl(request.getHeader(PROXY_TARGET_HEADER));
     queryDetail.setCaptureTime(System.currentTimeMillis());
-    queryDetail.setUser(Optional.ofNullable(request.getHeader(USER_HEADER))
-            .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
+    String queryString = request.getQueryString() != null ? request.getQueryString() : "";
+    Optional<String> userIdFromQueryString = extractUserId(queryString);
+    String user = userIdFromQueryString.orElseGet(() ->
+            Optional.ofNullable(request.getHeader(USER_HEADER))
+                    .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
+    queryDetail.setUser(user);
     queryDetail.setSource(Optional.ofNullable(request.getHeader(SOURCE_HEADER))
             .orElse(request.getHeader(ALTERNATE_SOURCE_HEADER)));
     String queryText = CharStreams.toString(request.getReader());
@@ -311,5 +321,22 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
             ? queryText.substring(0, QUERY_TEXT_LENGTH_FOR_HISTORY) + "..."
             : queryText);
     return queryDetail;
+  }
+
+  public static Optional<String> extractUserId(String input) {
+    // Define the regular expression pattern to match the user ID
+    Pattern pattern = Pattern.compile("(?<=userID: )\\d+");
+
+    // Create a Matcher to find the pattern in the input string
+    Matcher matcher = pattern.matcher(input);
+
+    // Check if the user ID is present
+    if (matcher.find()) {
+      // Return the matched user ID wrapped in an Optional
+      return Optional.of(matcher.group());
+    } else {
+      // Return an empty Optional if the user ID is not present
+      return Optional.empty();
+    }
   }
 }
