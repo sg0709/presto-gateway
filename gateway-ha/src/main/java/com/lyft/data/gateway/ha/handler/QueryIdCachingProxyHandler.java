@@ -114,7 +114,6 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
   @Override
   public String rewriteTarget(HttpServletRequest request) {
     /* Here comes the load balancer / gateway */
-    log.info(request.toString());
     String backendAddress = "http://localhost:" + serverApplicationPort;
 
     // Only load balance presto query APIs.
@@ -291,7 +290,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
             request.getHeader(HOST_HEADER), overrideHostName);
 
         proxyRequest.header(HOST_HEADER, overrideHostName);
-        log.info(request.toString());
+        log.info("request-log: {}", request.toString());
         String queryString = request.getQueryString() != null ? request.getQueryString() : "";
         Optional<String> userIdFromQueryString = extractUserId(queryString);
         String user = userIdFromQueryString.isPresent() ? userIdFromQueryString.get() :
@@ -300,7 +299,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
         log.info("Changed User: {}", user);
         proxyRequest.header(USER_HEADER, null);
         proxyRequest.header(USER_HEADER, "Sarthak");
-        proxyRequest.header("test-key", "sarthak");
+        proxyRequest.header(ALTERNATE_USER_HEADER, null);
+        proxyRequest.header(ALTERNATE_USER_HEADER, "Sarthak");
         log.info("ProxyRequestChanged: {}", proxyRequest.toString());
       } catch (URISyntaxException e) {
         log.warn(e.toString());
