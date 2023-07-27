@@ -126,7 +126,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
         backendAddress = routingManager.findBackendForQueryId(queryId);
       } else {
         String routingGroup = routingGroupSelector.findRoutingGroup(request);
-        String user = Optional.ofNullable(request.getHeader(USER_HEADER)).orElse(request.getHeader(ALTERNATE_USER_HEADER));
+        String user = Optional.ofNullable(request.getHeader(USER_HEADER))
+                        .orElse(request.getHeader(ALTERNATE_USER_HEADER));
 
         if (!Strings.isNullOrEmpty(routingGroup)) {
           // This falls back on adhoc backend if there are no cluster found for the routing group.
