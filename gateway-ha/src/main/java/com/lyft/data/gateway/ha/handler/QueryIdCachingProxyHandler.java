@@ -392,13 +392,12 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
       Header[] cookies = firstApiResponse.getHeaders("Set-Cookie");
 
-      log.info("first API cookies: {}", cookies);
+      log.info("first API cookies: {}", (Object) cookies);
 
       // Call the second API with the extracted token
       return makeSecondApiCall(user, cookies);
-    }
-    catch (Exception e) {
-      log.warn("error in first API call: {}", e.getMessage());
+    } catch (Exception e) {
+      log.warn("error in first API call:{}", e.getMessage());
       return "unknown_user";
     }
   }
