@@ -420,7 +420,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     Pattern pattern = Pattern.compile("(\\w+)=([^;]+)");
 
     for (Header cookie : cookies) {
-      Matcher matcher = pattern.matcher(cookie.toString());
+      log.info("logged cookie: {}", cookie.getValue());
+      Matcher matcher = pattern.matcher(cookie.getValue());
       String cookieName = matcher.group(1);
       String cookieValue = matcher.group(2);
       cookieBuilder.append(cookieName).append("=").append(cookieValue).append(";");
