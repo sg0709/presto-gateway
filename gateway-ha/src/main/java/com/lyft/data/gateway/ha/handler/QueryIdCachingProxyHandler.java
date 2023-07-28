@@ -417,14 +417,10 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
     StringBuilder cookieBuilder = new StringBuilder();
 
-    Pattern pattern = Pattern.compile("(\\w+)=([^;]+)");
-
     for (Header cookie : cookies) {
       log.info("logged cookie: {}", cookie.getValue());
-      Matcher matcher = pattern.matcher(cookie.getValue());
-      String cookieName = matcher.group(1);
-      String cookieValue = matcher.group(2);
-      cookieBuilder.append(cookieName).append("=").append(cookieValue).append(";");
+      String val = cookie.getValue().split(";")[0];
+      cookieBuilder.append(val).append(";");
     }
 
     String cookieString = cookieBuilder.toString();
