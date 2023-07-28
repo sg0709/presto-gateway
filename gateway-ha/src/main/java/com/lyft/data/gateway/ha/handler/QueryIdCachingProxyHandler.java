@@ -291,19 +291,23 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
         proxyRequest.header(HOST_HEADER, overrideHostName);
         log.info("request-log: {}", request.toString());
-        String queryString = request.getQueryString() != null ? request.getQueryString() : "";
+        String queryString = CharStreams.toString(request.getReader());
         Optional<String> userIdFromQueryString = extractUserId(queryString);
-        String user = userIdFromQueryString.isPresent() ? userIdFromQueryString.get() :
-                Optional.ofNullable(request.getHeader(USER_HEADER))
-                        .orElse(request.getHeader(ALTERNATE_USER_HEADER));
+        String user = userIdFromQueryString.orElseGet(() -> Optional.ofNullable(request.getHeader(USER_HEADER))
+                .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
         log.info("Changed User: {}", user);
-        proxyRequest.header(USER_HEADER, null);
-        proxyRequest.header(USER_HEADER, "Sarthak");
-        proxyRequest.header(ALTERNATE_USER_HEADER, null);
-        proxyRequest.header(ALTERNATE_USER_HEADER, "Sarthak");
-        log.info("ProxyRequestChanged: {}", proxyRequest.toString());
+        if(request.getHeader(USER_HEADER) != null) {
+          proxyRequest.header(USER_HEADER, null);
+          proxyRequest.header(USER_HEADER, user);
+        } else {
+          proxyRequest.header(ALTERNATE_USER_HEADER, null);
+          proxyRequest.header(ALTERNATE_USER_HEADER, user);
+        }
+        log.info("ProxyRequestChanged: {}", proxyRequest);
       } catch (URISyntaxException e) {
         log.warn(e.toString());
+      } catch (IOException e) {
+        log.error(e.toString());
       }
     } else {
       log.warn("Proxy Target not set on request, unable to decipher HOST header");
@@ -315,8 +319,11 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     QueryHistoryManager.QueryDetail queryDetail = new QueryHistoryManager.QueryDetail();
     queryDetail.setBackendUrl(request.getHeader(PROXY_TARGET_HEADER));
     queryDetail.setCaptureTime(System.currentTimeMillis());
-    queryDetail.setUser(Optional.ofNullable(request.getHeader(USER_HEADER))
+    String queryString = CharStreams.toString(request.getReader());
+    Optional<String> userIdFromQueryString = extractUserId(queryString);
+    String user = userIdFromQueryString.orElseGet(() -> Optional.ofNullable(request.getHeader(USER_HEADER))
             .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
+    queryDetail.setUser(user);
     queryDetail.setSource(Optional.ofNullable(request.getHeader(SOURCE_HEADER))
             .orElse(request.getHeader(ALTERNATE_SOURCE_HEADER)));
     String queryText = CharStreams.toString(request.getReader());
