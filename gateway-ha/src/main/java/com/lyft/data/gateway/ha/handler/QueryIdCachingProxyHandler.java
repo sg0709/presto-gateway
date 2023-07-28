@@ -447,7 +447,9 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
     String userEmail = responseJson.get("email").asText();
 
-    return userEmail.substring(0, (user.indexOf('@') > -1)
-            ? (user.indexOf('@')) : (user.length())).replaceAll("[.]","-");
+    log.info("userEmail: {}", userEmail);
+
+    return userEmail.substring(0, (userEmail.indexOf('@') > -1)
+            ? (userEmail.indexOf('@')) : (userEmail.length())).replaceAll("[.]","-");
   }
 }
