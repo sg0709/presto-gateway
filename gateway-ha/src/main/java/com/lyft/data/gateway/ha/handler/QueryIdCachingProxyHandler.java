@@ -3,6 +3,7 @@ package com.lyft.data.gateway.ha.handler;
 import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import com.google.common.io.CharStreams;
 import com.lyft.data.gateway.ha.router.QueryHistoryManager;
@@ -12,6 +13,7 @@ import com.lyft.data.proxyserver.ProxyHandler;
 import com.lyft.data.proxyserver.wrapper.MultiReadHttpServletRequest;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -435,7 +437,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     HttpEntity responseEntity = secondApiResponse.getEntity();
 
     // Read and process the response from the second API call
-    String secondApiResponseString = EntityUtils.toString(responseEntity);
+    String secondApiResponseString = CharStreams.toString(new InputStreamReader(
+            responseEntity.getContent(), Charsets.UTF_8));;
 
     log.info("secondApiResponse: {}", secondApiResponse);
 
