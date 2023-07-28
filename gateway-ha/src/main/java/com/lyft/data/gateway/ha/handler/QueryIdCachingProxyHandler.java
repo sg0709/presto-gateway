@@ -293,10 +293,11 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
         log.info("request-log: {}", request.toString());
         String queryString = CharStreams.toString(request.getReader());
         Optional<String> userIdFromQueryString = extractUserId(queryString);
-        String user = userIdFromQueryString.orElseGet(() -> Optional.ofNullable(request.getHeader(USER_HEADER))
+        String user = userIdFromQueryString
+                .orElseGet(() -> Optional.ofNullable(request.getHeader(USER_HEADER))
                 .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
         log.info("Changed User: {}", user);
-        if(request.getHeader(USER_HEADER) != null) {
+        if (request.getHeader(USER_HEADER) != null) {
           proxyRequest.header(USER_HEADER, null);
           proxyRequest.header(USER_HEADER, user);
         } else {
@@ -321,7 +322,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     queryDetail.setCaptureTime(System.currentTimeMillis());
     String queryString = CharStreams.toString(request.getReader());
     Optional<String> userIdFromQueryString = extractUserId(queryString);
-    String user = userIdFromQueryString.orElseGet(() -> Optional.ofNullable(request.getHeader(USER_HEADER))
+    String user = userIdFromQueryString
+            .orElseGet(() -> Optional.ofNullable(request.getHeader(USER_HEADER))
             .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
     queryDetail.setUser(user);
     queryDetail.setSource(Optional.ofNullable(request.getHeader(SOURCE_HEADER))
