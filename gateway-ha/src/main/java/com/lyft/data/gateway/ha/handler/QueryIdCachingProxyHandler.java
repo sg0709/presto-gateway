@@ -14,7 +14,10 @@ import com.lyft.data.proxyserver.wrapper.MultiReadHttpServletRequest;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,9 +27,6 @@ import javax.ws.rs.HttpMethod;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.client.api.Request;
 
-import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.util.Callback;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -35,6 +35,9 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+
+import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.util.Callback;
 
 @Slf4j
 public class QueryIdCachingProxyHandler extends ProxyHandler {
@@ -362,7 +365,6 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
   }
 
   private static String makeFirstApiCall(String user) throws IOException {
-    HttpClient httpClient = HttpClients.createDefault();
 
     // Construct the first API call URL
     String firstApiUrl = "https://metabase-presto.meesho.com/api/session";
@@ -376,9 +378,11 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     httpPost.setHeader("sec-fetch-mode", "cors");
     httpPost.setHeader("sec-fetch-site", "same-origin");
 
+    HttpClient httpClient = HttpClients.createDefault();
+
     // Construct the request body
-    String requestBody = "{\"username\":\"metabase-cachewarmup@meesho.com\"," +
-            "\"password\":\"dataplatform@123\"}";
+    String requestBody = "{\"username\":\"metabase-cachewarmup@meesho.com\","
+            + "\"password\":\"dataplatform@123\"}";
     httpPost.setEntity(new StringEntity(requestBody));
 
     // Execute the first API call
@@ -397,7 +401,6 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
   private static String makeSecondApiCall(String user, JsonNode firstApiResponse)
           throws IOException {
-    HttpClient httpClient = HttpClients.createDefault();
 
     // Construct the second API call URL with the token
     String secondApiUrl = "https://metabase-presto.meesho.com/api/user/" + user;
@@ -419,6 +422,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
       httpGet.setHeader(key, value);
     }
 
+    HttpClient httpClient = HttpClients.createDefault();
+
     // Execute the second API call
     HttpResponse secondApiResponse = httpClient.execute(httpGet);
     HttpEntity responseEntity = secondApiResponse.getEntity();
@@ -431,7 +436,7 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
     String userEmail = responseJson.get("email").asText();
 
-    return userEmail.substring(0,(user.indexOf('@')>-1)?
-            (user.indexOf('@')):(user.length())).replaceAll("[.]","-");
+    return userEmail.substring(0, (user.indexOf('@') > -1)
+            ? (user.indexOf('@')) : (user.length())).replaceAll("[.]","-");
   }
 }
