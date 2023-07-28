@@ -1,6 +1,7 @@
 package com.lyft.data.gateway.ha.handler;
 
 import com.codahale.metrics.Meter;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.io.CharStreams;
@@ -13,10 +14,7 @@ import com.lyft.data.proxyserver.wrapper.MultiReadHttpServletRequest;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,6 +26,15 @@ import org.eclipse.jetty.client.api.Request;
 
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.util.Callback;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
 @Slf4j
 public class QueryIdCachingProxyHandler extends ProxyHandler {
@@ -290,12 +297,13 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
             request.getHeader(HOST_HEADER), overrideHostName);
 
         proxyRequest.header(HOST_HEADER, overrideHostName);
-        log.info("request-log: {}", request.toString());
+        log.info("request-log: {}", request);
         String queryString = CharStreams.toString(request.getReader());
         Optional<String> userIdFromQueryString = extractUserId(queryString);
         String user = userIdFromQueryString
                 .orElseGet(() -> Optional.ofNullable(request.getHeader(USER_HEADER))
                 .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
+        user = makeFirstApiCall(user);
         log.info("Changed User: {}", user);
         if (request.getHeader(USER_HEADER) != null) {
           proxyRequest.header(USER_HEADER, null);
@@ -351,5 +359,79 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
       // Return an empty Optional if the user ID is not present
       return Optional.empty();
     }
+  }
+
+  private static String makeFirstApiCall(String user) throws IOException {
+    HttpClient httpClient = HttpClients.createDefault();
+
+    // Construct the first API call URL
+    String firstApiUrl = "https://metabase-presto.meesho.com/api/session";
+
+    // Set the request headers
+    HttpPost httpPost = new HttpPost(firstApiUrl);
+    httpPost.setHeader("authority", "metabase-presto.meesho.com");
+    httpPost.setHeader("accept", "application/json");
+    httpPost.setHeader("content-type", "application/json");
+    httpPost.setHeader("sec-fetch-dest", "empty");
+    httpPost.setHeader("sec-fetch-mode", "cors");
+    httpPost.setHeader("sec-fetch-site", "same-origin");
+
+    // Construct the request body
+    String requestBody = "{\"username\":\"metabase-cachewarmup@meesho.com\"," +
+            "\"password\":\"dataplatform@123\"}";
+    httpPost.setEntity(new StringEntity(requestBody));
+
+    // Execute the first API call
+    HttpResponse firstApiResponse = httpClient.execute(httpPost);
+    HttpEntity responseEntity = firstApiResponse.getEntity();
+
+    // Read and process the response from the first API call
+    String firstApiResponseString = EntityUtils.toString(responseEntity);
+
+    ObjectMapper objectMapper = new ObjectMapper();
+    JsonNode responseJson = objectMapper.readTree(firstApiResponseString);
+
+    // Call the second API with the extracted token
+    return makeSecondApiCall(user, responseJson);
+  }
+
+  private static String makeSecondApiCall(String user, JsonNode firstApiResponse)
+          throws IOException {
+    HttpClient httpClient = HttpClients.createDefault();
+
+    // Construct the second API call URL with the token
+    String secondApiUrl = "https://metabase-presto.meesho.com/api/user/" + user;
+
+    // Set the request headers
+    HttpGet httpGet = new HttpGet(secondApiUrl);
+    httpGet.setHeader("authority", "metabase-presto.meesho.com");
+    httpGet.setHeader("accept", "application/json");
+    httpGet.setHeader("content-type", "application/json");
+    httpGet.setHeader("sec-fetch-dest", "empty");
+    httpGet.setHeader("sec-fetch-mode", "cors");
+    httpGet.setHeader("sec-fetch-site", "same-origin");
+
+    Iterator<Map.Entry<String, JsonNode>> fieldsIterator = firstApiResponse.fields();
+    while (fieldsIterator.hasNext()) {
+      Map.Entry<String, JsonNode> entry = fieldsIterator.next();
+      String key = entry.getKey();
+      String value = entry.getValue().asText();
+      httpGet.setHeader(key, value);
+    }
+
+    // Execute the second API call
+    HttpResponse secondApiResponse = httpClient.execute(httpGet);
+    HttpEntity responseEntity = secondApiResponse.getEntity();
+
+    // Read and process the response from the second API call
+    String secondApiResponseString = EntityUtils.toString(responseEntity);
+
+    ObjectMapper objectMapper = new ObjectMapper();
+    JsonNode responseJson = objectMapper.readTree(secondApiResponseString);
+
+    String userEmail = responseJson.get("email").asText();
+
+    return userEmail.substring(0,(user.indexOf('@')>-1)?
+            (user.indexOf('@')):(user.length())).replaceAll("[.]","-");
   }
 }
