@@ -25,7 +25,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jetty.client.api.Request;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -36,6 +35,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.util.Callback;
 
