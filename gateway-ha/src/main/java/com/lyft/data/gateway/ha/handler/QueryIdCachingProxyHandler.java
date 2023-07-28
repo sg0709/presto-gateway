@@ -392,6 +392,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     // Read and process the response from the first API call
     String firstApiResponseString = EntityUtils.toString(responseEntity);
 
+    log.info("firstApiResponse: {}", firstApiResponse);
+
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode responseJson = objectMapper.readTree(firstApiResponseString);
 
@@ -430,6 +432,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
     // Read and process the response from the second API call
     String secondApiResponseString = EntityUtils.toString(responseEntity);
+
+    log.info("secondApiResponse: {}", secondApiResponse);
 
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode responseJson = objectMapper.readTree(secondApiResponseString);
