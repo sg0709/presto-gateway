@@ -15,8 +15,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -417,9 +415,16 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     httpGet.setHeader("sec-fetch-mode", "cors");
     httpGet.setHeader("sec-fetch-site", "same-origin");
 
+    StringBuilder cookieBuilder = new StringBuilder();
+
     for (Header cookie : cookies) {
-      httpGet.addHeader(cookie);
+      cookieBuilder.append(cookie.getName()).append("=").append(cookie.getValue()).append(";");
     }
+
+    String cookieString = cookieBuilder.toString();
+
+    httpGet.setHeader("Cookie", cookieString);
+
 
     HttpClient httpClient = HttpClients.createDefault();
 
