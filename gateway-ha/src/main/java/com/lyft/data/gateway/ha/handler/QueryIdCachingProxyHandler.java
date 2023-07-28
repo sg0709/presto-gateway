@@ -26,6 +26,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -366,42 +367,43 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
   private static String makeFirstApiCall(String user) throws IOException {
 
-    // Construct the first API call URL
-    String firstApiUrl = "https://metabase-presto.meesho.com/api/session";
+    try {
+      // Construct the first API call URL
+      String firstApiUrl = "https://metabase-presto.meesho.com/api/session";
 
-    // Set the request headers
-    HttpPost httpPost = new HttpPost(firstApiUrl);
-    httpPost.setHeader("authority", "metabase-presto.meesho.com");
-    httpPost.setHeader("accept", "application/json");
-    httpPost.setHeader("content-type", "application/json");
-    httpPost.setHeader("sec-fetch-dest", "empty");
-    httpPost.setHeader("sec-fetch-mode", "cors");
-    httpPost.setHeader("sec-fetch-site", "same-origin");
+      // Set the request headers
+      HttpPost httpPost = new HttpPost(firstApiUrl);
+      httpPost.setHeader("authority", "metabase-presto.meesho.com");
+      httpPost.setHeader("accept", "application/json");
+      httpPost.setHeader("content-type", "application/json");
+      httpPost.setHeader("sec-fetch-dest", "empty");
+      httpPost.setHeader("sec-fetch-mode", "cors");
+      httpPost.setHeader("sec-fetch-site", "same-origin");
 
-    HttpClient httpClient = HttpClients.createDefault();
+      HttpClient httpClient = HttpClients.createDefault();
 
-    // Construct the request body
-    String requestBody = "{\"username\":\"metabase-cachewarmup@meesho.com\","
-            + "\"password\":\"dataplatform@123\"}";
-    httpPost.setEntity(new StringEntity(requestBody));
+      // Construct the request body
+      String requestBody = "{\"username\":\"metabase-cachewarmup@meesho.com\","
+              + "\"password\":\"dataplatform@123\"}";
+      httpPost.setEntity(new StringEntity(requestBody));
 
-    // Execute the first API call
-    HttpResponse firstApiResponse = httpClient.execute(httpPost);
-    HttpEntity responseEntity = firstApiResponse.getEntity();
+      // Execute the first API call
+      HttpResponse firstApiResponse = httpClient.execute(httpPost);
 
-    // Read and process the response from the first API call
-    String firstApiResponseString = EntityUtils.toString(responseEntity);
+      Header[] cookies = firstApiResponse.getHeaders("Set-Cookie");
 
-    log.info("firstApiResponse: {}", firstApiResponse);
+      log.info("first API cookies: {}", cookies);
 
-    ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode responseJson = objectMapper.readTree(firstApiResponseString);
-
-    // Call the second API with the extracted token
-    return makeSecondApiCall(user, responseJson);
+      // Call the second API with the extracted token
+      return makeSecondApiCall(user, cookies);
+    }
+    catch (Exception e) {
+      log.warn("error in first API call: {}", e.getMessage());
+      return "unknown_user";
+    }
   }
 
-  private static String makeSecondApiCall(String user, JsonNode firstApiResponse)
+  private static String makeSecondApiCall(String user, Header[] cookies)
           throws IOException {
 
     // Construct the second API call URL with the token
@@ -416,12 +418,8 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
     httpGet.setHeader("sec-fetch-mode", "cors");
     httpGet.setHeader("sec-fetch-site", "same-origin");
 
-    Iterator<Map.Entry<String, JsonNode>> fieldsIterator = firstApiResponse.fields();
-    while (fieldsIterator.hasNext()) {
-      Map.Entry<String, JsonNode> entry = fieldsIterator.next();
-      String key = entry.getKey();
-      String value = entry.getValue().asText();
-      httpGet.setHeader(key, value);
+    for (Header cookie : cookies) {
+      httpGet.addHeader(cookie);
     }
 
     HttpClient httpClient = HttpClients.createDefault();
