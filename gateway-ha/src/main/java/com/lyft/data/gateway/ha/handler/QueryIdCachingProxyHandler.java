@@ -369,11 +369,11 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
 
     try {
       // Construct the first API call URL
-      String firstApiUrl = "https://metabase-presto.meesho.com/api/session";
+      String firstApiUrl = "https://metabase-temp.meesho.co/api/session";
 
       // Set the request headers
       HttpPost httpPost = new HttpPost(firstApiUrl);
-      httpPost.setHeader("authority", "metabase-presto.meesho.com");
+      httpPost.setHeader("authority", "metabase-temp.meesho.co");
       httpPost.setHeader("accept", "application/json");
       httpPost.setHeader("content-type", "application/json");
       httpPost.setHeader("sec-fetch-dest", "empty");
@@ -406,11 +406,11 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
           throws IOException {
 
     // Construct the second API call URL with the token
-    String secondApiUrl = "https://metabase-presto.meesho.com/api/user/" + user;
+    String secondApiUrl = "https://metabase-temp.meesho.co/api/user/" + user;
 
     // Set the request headers
     HttpGet httpGet = new HttpGet(secondApiUrl);
-    httpGet.setHeader("authority", "metabase-presto.meesho.com");
+    httpGet.setHeader("authority", "metabase-temp.meesho.co");
     httpGet.setHeader("accept", "application/json");
     httpGet.setHeader("content-type", "application/json");
     httpGet.setHeader("sec-fetch-dest", "empty");
