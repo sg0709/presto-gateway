@@ -307,7 +307,9 @@ public class QueryIdCachingProxyHandler extends ProxyHandler {
         String user = userIdFromQueryString
                 .orElseGet(() -> Optional.ofNullable(request.getHeader(USER_HEADER))
                 .orElse(request.getHeader(ALTERNATE_USER_HEADER)));
-        user = makeFirstApiCall(user);
+        if (userIdFromQueryString.isPresent()) {
+          user = makeFirstApiCall(user);
+        }
         log.info("Changed User: {}", user);
         if (request.getHeader(USER_HEADER) != null) {
           proxyRequest.header(USER_HEADER, null);
